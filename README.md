@@ -10,7 +10,7 @@ The goals / steps of this project were the following:
 * Make a pipeline that finds lane lines on the road
 * Reflect on my work in a written report
 
-See [[P1_Pelletier.ipynb]] for my code.
+See P1_Pelletier.ipynb for my code.
 
 ---
 
@@ -18,7 +18,7 @@ See [[P1_Pelletier.ipynb]] for my code.
 
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-My pipeline consists of the following steups:
+My pipeline consists of the following steps:
 1. Convert image to grayscale
     1. I constructed a special grayscale mapping function that assigns "whiteness" and "yellowness" scores to each pixel, and then takes the maximum of the two scores
 1. Remove local background brightness
