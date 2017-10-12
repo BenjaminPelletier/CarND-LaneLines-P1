@@ -1,56 +1,60 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+## Writeup, Benjamin Pelletier
 
-Overview
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Finding Lane Lines on the Road**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
+The goals / steps of this project were the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on my work in a written report
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
+See [[P1_Pelletier.ipynb]] for my code.
 
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+### Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-**Step 2:** Open the code in a Jupyter Notebook
+My pipeline consists of the following steups:
+1. Convert image to grayscale
+    1. I constructed a special grayscale mapping function that assigns "whiteness" and "yellowness" scores to each pixel, and then takes the maximum of the two scores
+1. Remove local background brightness
+    1. The "background" brightness is determined by the average intensity of the pixels in a rectangular window around each pixel
+    1. The background is computed somewhat quickly using a integral image, similar to the Haar approach
+1. Identify the minimum and maximum grayscale intensity only within the region of interest
+    1. The region of interest is a quadrilateral defined manually that roughly captures the lane as it vanishes to infinity
+1. Normalize the entire grayscale image according to the min and max found in the region of interest
+    1. The result here should be a grayscale image with as strong edges as possible around transitions to and from lane lines
+1. Find Canny edges
+1. Mask out all Canny edges outside the region of interest
+1. Find line segments in the Canny edge image using the Hough transform
+1. Classify each line segment as "left lane line", "right lane line", or "neither" according to slope and position on the image
+    1. Line segments classified as "left lane line" are annotated with wide green lines
+    1. Line segments classified as "right lane line" are annotated with wide blue lines
+1. Using linear regression on the endpoints of the line segments assigned to a particular lane line, weighted by line segment length, to find the single best-fit line for each particular lane line
+1. Remove outlying endpoints and repeat the previous step and this step until there are no outliers
+1. Annotate the best-fit line for each lane line in red
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+The output of the pipeline can be best seen in the videos in the test_videos_output folder in this repository (see above for index).
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+Please see also that the challenge video in that folder is annotated fairly well.
 
-`> jupyter notebook`
+### 2. and 3. Identify potential shortcomings with your current pipeline, and Suggest possible improvements to your pipeline
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+Each shortcoming mentioned below is then followed by a suggestion for possible improvement.
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+* Lane lines are assumed to be straight; this will fail when the road curves appreciably
+    * My regression approach could be changed to fit against the curve that is formed from a perspective projection of a circle (implicitly assumes roads locally follow clean circular arcs, which seems like a good approximation)
+* The region of interest is hard-coded, so a shift in the camera's position on the car or orientation will result in poor performance
+    * There could be a calibration phase where constraints are relaxed and the region of interest is automatically computed based on a reasonable set of training data
+* Rejection of disjoint line segments is poor (see the bridge crossing in the annotated challenge video)
+    * Detected line segments could be rejected as outliers if the line segment they represented is not sufficiently coincident with the best-fit line segment
+* Similar to the previous point, more generally, the context of the line segment that the line segment endpoints belong to is ignored when regressing the best-fit lane line
+    * If this context was used, performance could be improved
+* Computational speed is slower than I'd like
+    * There are a few places in the code where I stuck with code clarity rather than optimizing for performance.  This could be changed for production.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
